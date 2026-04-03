@@ -1,17 +1,28 @@
 package com.example.mmchatregenwa
 
+import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.drawable.Animatable
+import android.graphics.drawable.Drawable
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.SeekBar
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import com.example.mmchatregenwa.databinding.ItemChatAudioBinding
 import com.example.mmchatregenwa.databinding.ItemChatMediaBinding
 import com.example.mmchatregenwa.databinding.ItemChatSystemBinding
@@ -21,6 +32,8 @@ class ChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(ChatDiffCa
 
     private var mediaPlayer: MediaPlayer? = null
     private var currentlyPlayingUri: String? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var updateSeekBarRunnable: Runnable? = null
 
     companion object {
         private const val TYPE_TEXT = 0
@@ -54,8 +67,8 @@ class ChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(ChatDiffCa
         when (holder) {
             is TextViewHolder -> holder.bind(item as ChatMessage.Text)
             is MediaViewHolder -> holder.bind(item as ChatMessage.Media)
-            is SystemViewHolder -> holder.bind(item as ChatMessage.System)
             is AudioViewHolder -> holder.bind(item as ChatMessage.Audio)
+            is SystemViewHolder -> holder.bind(item as ChatMessage.System)
         }
     }
 
@@ -92,17 +105,22 @@ class ChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(ChatDiffCa
     class MediaViewHolder(val binding: ItemChatMediaBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: ChatMessage.Media) {
             val params = binding.cardViewMedia.layoutParams as ConstraintLayout.LayoutParams
+            val context = binding.root.context
+            
             if (item.isSticker) {
                 binding.cardViewMedia.cardElevation = 0f
                 binding.cardViewMedia.setCardBackgroundColor(Color.TRANSPARENT)
                 binding.ivMedia.layoutParams.width = 160.dpToPx()
                 binding.ivMedia.layoutParams.height = 160.dpToPx()
+                binding.ivMedia.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
             } else {
                 binding.cardViewMedia.cardElevation = 1f
                 binding.ivMedia.layoutParams.width = 240.dpToPx()
                 binding.ivMedia.layoutParams.height = 240.dpToPx()
+                binding.ivMedia.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
                 binding.cardViewMedia.setCardBackgroundColor(if (item.isMe) Color.parseColor("#DCF8C6") else Color.WHITE)
             }
+
             if (item.isMe) {
                 params.startToStart = ConstraintLayout.LayoutParams.UNSET
                 params.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
@@ -118,27 +136,73 @@ class ChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(ChatDiffCa
             binding.cardViewMedia.layoutParams = params
             binding.tvTimestampMedia.text = item.timestamp
             
-            val mediaUri = item.mediaUri
-            if (mediaUri != null) {
+            val mediaUriStr = item.mediaUri
+            if (mediaUriStr != null) {
                 binding.ivMedia.visibility = View.VISIBLE
                 binding.tvMediaStatus.visibility = View.GONE
-                Glide.with(binding.root.context)
-                    .load(Uri.parse(mediaUri))
-                    .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-                    .dontTransform() // Prevent downsampling that breaks animations
-                    .error(android.R.drawable.stat_notify_error)
-                    .into(binding.ivMedia)
+                val uri = Uri.parse(mediaUriStr)
+
+                // For stickers, try loading as Bitmap first to at least show a static preview
+                if (item.isSticker) {
+                    Glide.with(context)
+                        .asBitmap()
+                        .load(uri)
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .override(300, 300)
+                        .listener(object : RequestListener<Bitmap> {
+                            override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Bitmap>, isFirstResource: Boolean): Boolean {
+                                return false
+                            }
+                            override fun onResourceReady(resource: Bitmap, model: Any, target: Target<Bitmap>?, dataSource: DataSource, isFirstResource: Boolean): Boolean {
+                                return false
+                            }
+                        })
+                        .error(android.R.drawable.stat_notify_error)
+                        .into(binding.ivMedia)
+                } else {
+                    Glide.with(context)
+                        .load(uri)
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .error(android.R.drawable.stat_notify_error)
+                        .into(binding.ivMedia)
+                }
+
+                // Make ALL media (Images, Videos, Stickers) interactible
+                binding.ivMedia.setOnClickListener {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            val mimeType = when {
+                                item.fileName.endsWith(".mp4", true) -> "video/*"
+                                item.fileName.endsWith(".webp", true) || item.fileName.endsWith(".was", true) -> "image/webp"
+                                else -> "image/*"
+                            }
+                            setDataAndType(uri, mimeType)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        // Fallback if specific viewer fails
+                        try {
+                            val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(uri, "image/*")
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(fallbackIntent)
+                        } catch (ex: Exception) {}
+                    }
+                }
             } else {
                 binding.ivMedia.visibility = View.GONE
                 binding.tvMediaStatus.visibility = View.VISIBLE
                 binding.tvMediaStatus.text = "File Missing: ${item.fileName}"
+                binding.ivMedia.setOnClickListener(null)
             }
         }
 
         private fun Int.dpToPx(): Int = (this * binding.root.context.resources.displayMetrics.density).toInt()
     }
 
-    inner class AudioViewHolder(private val binding: ItemChatAudioBinding) : RecyclerView.ViewHolder(binding.root) {
+    inner class AudioViewHolder(val binding: ItemChatAudioBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: ChatMessage.Audio) {
             val params = binding.cardViewAudio.layoutParams as ConstraintLayout.LayoutParams
             if (item.isMe) {
@@ -158,37 +222,74 @@ class ChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(ChatDiffCa
             val isPlaying = currentlyPlayingUri == item.audioUri
             binding.btnPlayPause.setImageResource(if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play)
 
+            // Setup seekbar
+            if (isPlaying && mediaPlayer != null) {
+                binding.seekBarAudio.max = mediaPlayer!!.duration
+                binding.seekBarAudio.progress = mediaPlayer!!.currentPosition
+                startSeekBarUpdate(binding.seekBarAudio)
+            } else {
+                binding.seekBarAudio.progress = 0
+            }
+
             binding.btnPlayPause.setOnClickListener {
                 if (isPlaying) {
                     stopAudio()
                 } else {
-                    item.audioUri?.let { uri -> playAudio(uri) }
+                    item.audioUri?.let { uri -> playAudio(uri, this) }
                 }
             }
-        }
 
-        private fun playAudio(uriString: String) {
-            stopAudio()
-            try {
-                mediaPlayer = MediaPlayer().apply {
-                    setDataSource(binding.root.context, Uri.parse(uriString))
-                    prepare()
-                    start()
-                    setOnCompletionListener { stopAudio() }
+            binding.seekBarAudio.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    if (fromUser && currentlyPlayingUri == item.audioUri) {
+                        mediaPlayer?.seekTo(progress)
+                    }
                 }
-                currentlyPlayingUri = uriString
-                this@ChatAdapter.notifyDataSetChanged()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
         }
     }
 
+    private fun playAudio(uriString: String, holder: AudioViewHolder) {
+        stopAudio()
+        try {
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(holder.itemView.context, Uri.parse(uriString))
+                prepare()
+                start()
+                setOnCompletionListener { stopAudio() }
+            }
+            currentlyPlayingUri = uriString
+            holder.binding.seekBarAudio.max = mediaPlayer!!.duration
+            startSeekBarUpdate(holder.binding.seekBarAudio)
+            this@ChatAdapter.notifyDataSetChanged()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun startSeekBarUpdate(seekBar: SeekBar) {
+        updateSeekBarRunnable?.let { handler.removeCallbacks(it) }
+        updateSeekBarRunnable = object : Runnable {
+            override fun run() {
+                mediaPlayer?.let {
+                    if (it.isPlaying) {
+                        seekBar.progress = it.currentPosition
+                        handler.postDelayed(this, 100)
+                    }
+                }
+            }
+        }
+        handler.post(updateSeekBarRunnable!!)
+    }
+
     private fun stopAudio() {
+        updateSeekBarRunnable?.let { handler.removeCallbacks(it) }
         mediaPlayer?.release()
         mediaPlayer = null
         currentlyPlayingUri = null
-        notifyDataSetChanged()
+        this@ChatAdapter.notifyDataSetChanged()
     }
 
     class SystemViewHolder(private val binding: ItemChatSystemBinding) : RecyclerView.ViewHolder(binding.root) {
