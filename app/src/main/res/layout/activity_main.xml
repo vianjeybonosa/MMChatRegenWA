@@ -12,7 +12,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        app:layout_constraintEnd_toStartOf="@id/btnLoad"
+        app:layout_constraintEnd_toStartOf="@id/btnGallery"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -24,11 +24,21 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <Button
+        android:id="@+id/btnGallery"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:text="Gallery"
+        app:layout_constraintBottom_toBottomOf="@id/searchLayout"
+        app:layout_constraintEnd_toStartOf="@id/btnLoad"
+        app:layout_constraintTop_toTopOf="@id/searchLayout" />
+
+    <Button
         android:id="@+id/btnLoad"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
-        android:text="Load Chat"
+        android:text="Load"
         app:layout_constraintBottom_toBottomOf="@id/searchLayout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/searchLayout" />
@@ -37,13 +47,58 @@
         android:id="@+id/rvChat"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:scrollbars="vertical"
-        android:scrollbarThumbVertical="@android:color/darker_gray"
-        android:fadeScrollbars="false"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/searchLayout"
         tools:listitem="@layout/item_chat_text" />
+
+    <!-- Slim Scroller with Margin from Edge (Increased to ~8dp) -->
+    <View
+        android:id="@+id/chatScrollMap"
+        android:layout_width="20dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="8dp"
+        android:background="#08000000"
+        app:layout_constraintBottom_toBottomOf="@id/rvChat"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/rvChat" />
+
+    <View
+        android:id="@+id/chatScrollThumb"
+        android:layout_width="4dp"
+        android:layout_height="60dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/fast_scroll_thumb"
+        android:elevation="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/chatScrollMap" />
+
+    <!-- Chat Scroll Date Bubble -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cvChatDateBubble"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="32dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="#CC000000"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="10dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/searchLayout"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/tvChatDateBubble"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="September 2025" />
+    </androidx.cardview.widget.CardView>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabTop"
@@ -52,8 +107,8 @@
         android:layout_margin="16dp"
         android:contentDescription="Scroll to top"
         app:fabSize="mini"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/searchLayout"
+        app:layout_constraintEnd_toStartOf="@id/chatScrollMap"
+        app:layout_constraintTop_toBottomOf="@id/cvChatDateBubble"
         app:srcCompat="@android:drawable/arrow_up_float" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -64,7 +119,7 @@
         android:contentDescription="Scroll to bottom"
         app:fabSize="mini"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/chatScrollMap"
         app:srcCompat="@android:drawable/arrow_down_float" />
 
     <ProgressBar
@@ -76,5 +131,19 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <include
+        android:id="@+id/layoutGallery"
+        layout="@layout/layout_gallery"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <include
+        android:id="@+id/layoutMediaViewer"
+        layout="@layout/layout_media_viewer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

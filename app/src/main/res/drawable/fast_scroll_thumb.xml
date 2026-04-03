@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Pressed state - Slim & Translucent -->
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#80075E54" />
+            <size android:width="3dp" android:height="60dp" />
+            <corners android:radius="2dp" />
+        </shape>
+    </item>
+    <!-- Default state - Very Translucent -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#4025D366" />
+            <size android:width="3dp" android:height="60dp" />
+            <corners android:radius="2dp" />
+        </shape>
+    </item>
+</selector>
