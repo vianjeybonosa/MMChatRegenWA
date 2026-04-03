@@ -112,12 +112,15 @@ class ChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(ChatDiffCa
                 binding.cardViewMedia.setCardBackgroundColor(Color.TRANSPARENT)
                 binding.ivMedia.layoutParams.width = 160.dpToPx()
                 binding.ivMedia.layoutParams.height = 160.dpToPx()
+                binding.ivMedia.adjustViewBounds = false
                 binding.ivMedia.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
             } else {
                 binding.cardViewMedia.cardElevation = 1f
-                binding.ivMedia.layoutParams.width = 240.dpToPx()
-                binding.ivMedia.layoutParams.height = 240.dpToPx()
-                binding.ivMedia.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                // Dynamically size based on aspect ratio
+                binding.ivMedia.layoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT
+                binding.ivMedia.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                binding.ivMedia.adjustViewBounds = true
+                binding.ivMedia.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
                 binding.cardViewMedia.setCardBackgroundColor(if (item.isMe) Color.parseColor("#DCF8C6") else Color.WHITE)
             }
 
@@ -142,21 +145,12 @@ class ChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(ChatDiffCa
                 binding.tvMediaStatus.visibility = View.GONE
                 val uri = Uri.parse(mediaUriStr)
 
-                // For stickers, try loading as Bitmap first to at least show a static preview
                 if (item.isSticker) {
                     Glide.with(context)
                         .asBitmap()
                         .load(uri)
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
                         .override(300, 300)
-                        .listener(object : RequestListener<Bitmap> {
-                            override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Bitmap>, isFirstResource: Boolean): Boolean {
-                                return false
-                            }
-                            override fun onResourceReady(resource: Bitmap, model: Any, target: Target<Bitmap>?, dataSource: DataSource, isFirstResource: Boolean): Boolean {
-                                return false
-                            }
-                        })
                         .error(android.R.drawable.stat_notify_error)
                         .into(binding.ivMedia)
                 } else {
@@ -167,7 +161,6 @@ class ChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(ChatDiffCa
                         .into(binding.ivMedia)
                 }
 
-                // Make ALL media (Images, Videos, Stickers) interactible
                 binding.ivMedia.setOnClickListener {
                     try {
                         val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -181,7 +174,6 @@ class ChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(ChatDiffCa
                         }
                         context.startActivity(intent)
                     } catch (e: Exception) {
-                        // Fallback if specific viewer fails
                         try {
                             val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
                                 setDataAndType(uri, "image/*")
@@ -222,7 +214,6 @@ class ChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(ChatDiffCa
             val isPlaying = currentlyPlayingUri == item.audioUri
             binding.btnPlayPause.setImageResource(if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play)
 
-            // Setup seekbar
             if (isPlaying && mediaPlayer != null) {
                 binding.seekBarAudio.max = mediaPlayer!!.duration
                 binding.seekBarAudio.progress = mediaPlayer!!.currentPosition

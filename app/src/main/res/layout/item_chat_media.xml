@@ -4,27 +4,32 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="8dp">
+    android:padding="4dp">
 
     <androidx.cardview.widget.CardView
         android:id="@+id/cardViewMedia"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="2dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="1dp"
+        app:layout_constraintHorizontal_bias="0"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
+            android:id="@+id/layoutContentMedia"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="8dp">
+            android:padding="4dp">
 
             <TextView
                 android:id="@+id/tvSenderMedia"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="4dp"
                 android:textColor="@color/purple_700"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -32,29 +37,35 @@
 
             <ImageView
                 android:id="@+id/ivMedia"
-                android:layout_width="200dp"
-                android:layout_height="200dp"
-                android:scaleType="centerCrop"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="260dp"
+                android:maxHeight="400dp"
+                android:adjustViewBounds="true"
+                android:scaleType="fitCenter"
                 android:layout_marginTop="4dp"
                 android:contentDescription="@string/chat_media"
-                tools:src="@tools:sample/avatars" />
+                tools:src="@tools:sample/avatars"
+                tools:layout_width="200dp"
+                tools:layout_height="200dp" />
 
             <TextView
                 android:id="@+id/tvMediaStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:padding="8dp"
                 android:visibility="gone"
                 android:textColor="@android:color/holo_red_dark"
                 android:textSize="14sp"
-                tools:text="File Missing"
-                tools:visibility="visible"/>
+                tools:text="File Missing" />
 
             <TextView
                 android:id="@+id/tvTimestampMedia"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
-                android:textColor="@android:color/darker_gray"
+                android:layout_marginEnd="8dp"
+                android:textColor="#888888"
                 android:textSize="10sp"
                 tools:text="12:00 PM" />
 
