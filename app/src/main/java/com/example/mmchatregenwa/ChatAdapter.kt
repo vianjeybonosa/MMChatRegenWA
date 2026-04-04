@@ -1,7 +1,8 @@
 package com.example.mmchatregenwa
 
-import android.graphics.Bitmap
+import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.Animatable
 import android.graphics.drawable.Drawable
 import android.media.MediaPlayer
 import android.net.Uri
@@ -143,12 +144,29 @@ class ChatAdapter(private val onMediaClick: (ChatMessage.Media) -> Unit) : ListA
                 binding.tvMediaStatus.visibility = View.GONE
 
                 val requestBuilder = if (item.isSticker) {
-                    Glide.with(context).asBitmap().load(uri).override(300, 300)
+                    // For converted GIFs, ensure we don't apply any transforms that flatten the animation
+                    Glide.with(context)
+                        .load(uri)
+                        .diskCacheStrategy(DiskCacheStrategy.DATA)
+                        .dontTransform()
                 } else {
-                    Glide.with(context).load(uri)
+                    Glide.with(context)
+                        .load(uri)
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
                 }
 
-                requestBuilder.diskCacheStrategy(DiskCacheStrategy.ALL)
+                requestBuilder
+                    .listener(object : RequestListener<Drawable> {
+                        override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {
+                            return false
+                        }
+                        override fun onResourceReady(resource: Drawable, model: Any, target: Target<Drawable>?, dataSource: DataSource, isFirstResource: Boolean): Boolean {
+                            if (resource is Animatable) {
+                                resource.start()
+                            }
+                            return false
+                        }
+                    })
                     .error(android.R.drawable.stat_notify_error)
                     .into(binding.ivMedia)
 

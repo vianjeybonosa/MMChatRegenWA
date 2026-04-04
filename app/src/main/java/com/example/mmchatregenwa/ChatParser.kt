@@ -77,12 +77,33 @@ class ChatParser(private val context: Context) {
         
         return when {
             trimmedContent.endsWith("(file attached)") -> {
-                val fileName = trimmedContent.removeSuffix("(file attached)").trim()
-                val uri = mediaMap[fileName]?.toString()
-                if (fileName.endsWith(".opus", true)) {
-                    ChatMessage.Audio(id, sender, timestamp, false, fileName, uri)
+                val originalFileName = trimmedContent.removeSuffix("(file attached)").trim()
+                
+                val isSticker = originalFileName.endsWith(".webp", true) || originalFileName.endsWith(".was", true)
+                val isAudio = originalFileName.endsWith(".opus", true)
+                
+                // If it's a sticker, look for the converted .gif version
+                val targetFileName = if (isSticker) {
+                    originalFileName.substringBeforeLast(".") + ".gif"
                 } else {
-                    ChatMessage.Media(id, sender, timestamp, false, fileName, uri, fileName.endsWith(".webp", true) || fileName.endsWith(".was", true))
+                    originalFileName
+                }
+                
+                // Try to find the GIF URI, fallback to the original if not found
+                val uri = mediaMap[targetFileName]?.toString() ?: mediaMap[originalFileName]?.toString()
+
+                if (isAudio) {
+                    ChatMessage.Audio(id, sender, timestamp, false, originalFileName, uri)
+                } else {
+                    ChatMessage.Media(
+                        id = id,
+                        sender = sender,
+                        timestamp = timestamp,
+                        isMe = false,
+                        fileName = targetFileName,
+                        mediaUri = uri,
+                        isSticker = isSticker
+                    )
                 }
             }
             trimmedContent.isEmpty() -> ChatMessage.Text(id, sender, timestamp, false, "📞 WhatsApp Call / Event")
